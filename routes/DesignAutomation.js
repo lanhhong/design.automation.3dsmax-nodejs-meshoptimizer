@@ -31,7 +31,7 @@ const DataManagement = new DataManagementClient({
 });
 
 // Local directory to store AppBundles
-const BundlesDirectory = path.join(__dirname, '../bundles');
+const BundlesDirectory = path.join(__dirname, '../public/bundles');
 
 // Prefix for AppBundles and Activities
 const Nickname = config.credentials.client_id;
