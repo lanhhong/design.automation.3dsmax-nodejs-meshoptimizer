@@ -222,7 +222,7 @@ router.post('/api/forge/designautomation/workitems', upload.single('inputFile'),
     try {
         await DataManagement.createBucket(bucketKey, 'transient');
     } catch(err) {
-        console.log(err);
+        // console.log(err); // Bucket already exist
     }
 
     // 2. Read input file and upload to the bucket

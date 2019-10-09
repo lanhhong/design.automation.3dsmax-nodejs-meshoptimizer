@@ -24,6 +24,8 @@ $(document).ready(function () {
     $('#defineActivityShow').click(defineActivityModal);
     $('#createAppBundleActivity').click(createAppBundleActivity);
     $('#startWorkitem').click(startWorkitem);
+
+    startConnection();
 });
 
 /**
@@ -157,7 +159,22 @@ function startWorkitem() {
             writeLog('Workitem started: ' + res.workItemId);
         }
     });
+}
 
+/**
+ * Write messages to the browser
+ */
+function writeLog(text) {
+  $('#outputlog').append('<div style="border-top: 1px dashed #C0C0C0">' + text + '</div>');
+  var elem = document.getElementById('outputlog');
+  elem.scrollTop = elem.scrollHeight;
+}
+
+
+/**
+ * Start connection between server and client
+ */
+function startConnection() {
     // Set up connection between server and client (client-side)
     var socket = io();
 
@@ -168,13 +185,4 @@ function startWorkitem() {
     socket.on('downloadResult', data => {
         writeLog('<a href="' + data.url +'">Download result file here</a>');
     });
-}
-
-/**
- * Write messages to the browser
- */
-function writeLog(text) {
-  $('#outputlog').append('<div style="border-top: 1px dashed #C0C0C0">' + text + '</div>');
-  var elem = document.getElementById('outputlog');
-  elem.scrollTop = elem.scrollHeight;
 }
