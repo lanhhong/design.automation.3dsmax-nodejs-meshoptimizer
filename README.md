@@ -19,6 +19,10 @@ It includes a `Configure` modal box which allows for the creation and deletion o
 
 This is a **Node.js** version of the [3ds Max Design Automation .NET sample](https://github.com/kevinvandecar/design.automation.3dsmax-csharp-meshoptimizer), and the foundation is from the [Learn Forge Tutorial](https://learnforge.autodesk.io/#/tutorials/modifymodels).
 
+
+![thumbnail](/thumbnail.png)
+
+
 # Setup
 
 ## Prerequisites
