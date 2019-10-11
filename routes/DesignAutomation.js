@@ -25,6 +25,7 @@ const DesignAutomation = new DesignAutomationClient({
 });
 
 // Used to access Forge Data Management APIs
+// This sample uses the Object Storage Service (OSS) to store input and output files
 const DataManagement = new DataManagementClient({
     client_id: config.credentials.client_id, 
     client_secret: config.credentials.client_secret
@@ -33,7 +34,7 @@ const DataManagement = new DataManagementClient({
 // Local directory to store AppBundles
 const BundlesDirectory = path.join(__dirname, '../public/bundles');
 
-// Prefix for AppBundles and Activities
+// Prefix needed to construct a fully qualified ID for AppBundles and Activities
 const Nickname = config.credentials.client_id;
 
 // A user-friendly name for a specific AppBundle and/or Activity version
@@ -79,6 +80,27 @@ router.get('/api/appbundles', (req, res) => {
 });
 
 /**
+ * Get existing Activities defined for this app
+ */
+router.get('/api/forge/designautomation/activities', async (req, res) => {
+    // Get a list of all existing Acvitities
+    let activities = await DesignAutomation.listActivities();
+
+    // Filter out the latest Activities for this app
+    activities = activities.filter(activity => {
+        return (activity.startsWith(Nickname) && activity.indexOf('$LATEST') == -1);
+    });
+
+    // Return Activity names without our Nickname
+    let definedActivities = [];
+    activities.forEach(activity => {
+        definedActivities.push(activity.replace(`${Nickname}.`, ''));
+    });
+
+    res.send(definedActivities);
+});
+
+/**
  * Create and upload a new AppBundle 
  */
 router.post('/api/forge/designautomation/appbundles', async (req, res) => {
@@ -121,27 +143,6 @@ router.post('/api/forge/designautomation/appbundles', async (req, res) => {
 
     res.send({ appBundle: qualifiedAppBundleId, version: newAppBundleVersion.version });
 ;});
-
-/**
- * Get existing Activities defined for this account
- */
-router.get('/api/forge/designautomation/activities', async (req, res) => {
-    // Get a list of all existing Acvitities
-    let activities = await DesignAutomation.listActivities();
-
-    // Filter out the latest Activities for this account
-    activities = activities.filter(activity => {
-        return (activity.startsWith(Nickname) && activity.indexOf('$LATEST') == -1);
-    });
-
-    // For displaying existing Activities without our credentials
-    let definedActivities = [];
-    activities.forEach(activity => {
-        definedActivities.push(activity.replace(`${Nickname}.`, ''));
-    });
-
-    res.send(definedActivities);
-});
 
 /**
  * Create a new Activity
@@ -209,7 +210,8 @@ router.post('/api/forge/designautomation/workitems', upload.single('inputFile'),
     // Path to the input file
     const inputFilePath = req.file.path;
 
-    // The OSS bucket where input and output files will be stored
+    // Store input and output files in Forge Data Management's Object Storage Service (OSS)
+    // This OSS bucket is where input and output files will be stored
     const bucketKey = `${Nickname.toLowerCase()}_designautomation`;
 
     // Input file name is formatted to avoid overriding when the object is stored
@@ -232,8 +234,8 @@ router.post('/api/forge/designautomation/workitems', upload.single('inputFile'),
             // Upload the input file's contents to the specified bucket
             await DataManagement.uploadObject(bucketKey, inputFileNameOSS, 'application/octet-stream', data);
 
-            // Prepare WorkItem arguments
-            // 1. Input file argument
+            // Prepare WorkItem arguments. The arguments correspond to the Activity's parameters.
+            // 1. Input file argument. HTTP request argument for WorkItem to get input file from OSS bucket.
             const inputFileArgument = {
                 url: `https://developer.api.autodesk.com/oss/v2/buckets/${bucketKey}/objects/${inputFileNameOSS}`,
                 headers: { Authorization: `Bearer ${auth.access_token}` }
@@ -250,7 +252,7 @@ router.post('/api/forge/designautomation/workitems', upload.single('inputFile'),
                 url: `data:application/json,${JSON.stringify(inputJson).replace(/"/g, "'")}`
             };
 
-            // 3. Output file argument
+            // 3. Output file argument. HTTP request argument for WorkItem to store output file in the OSS bucket.
             const outputFileNameOSS = 'output.zip';
             const outputFileArgument = {
                 url: `https://developer.api.autodesk.com/oss/v2/buckets/${bucketKey}/objects/${outputFileNameOSS}`,
@@ -264,7 +266,7 @@ router.post('/api/forge/designautomation/workitems', upload.single('inputFile'),
                 inputFile: inputFileArgument,
                 inputJson: inputJsonArgument,
                 outputFile: outputFileArgument,
-                onComplete: { verb: 'post', url: callbackUrl }
+                onComplete: { verb: 'post', url: callbackUrl } // Built-in WorkItem callback called when WorkItem is complete.
             };
 
             // Submit new WorkItem
